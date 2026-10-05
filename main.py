@@ -1,3 +1,4 @@
+import time
 import os
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
@@ -174,7 +175,7 @@ def get_personas(db: Session = Depends(get_db)):
 
 
 # -------------------------------------------------------------------
-# Nuevo Endpoint: Análisis de datos con IA
+# Nuevo Endpoint: Análisis de datos con IA (Con Reintentos)
 # -------------------------------------------------------------------
 @app.get("/personas/analisis")
 def get_personas_analisis(db: Session = Depends(get_db)):
@@ -205,17 +206,29 @@ def get_personas_analisis(db: Session = Depends(get_db)):
     {datos_personas}
     """
 
-    try:
-        # 3. Solicitar la generación del contenido al modelo
-        response = ai_client.models.generate_content(
-            model='gemini-3.8-flash',
-            contents=prompt
-        )
+    # 3. Lógica de Reintentos Automáticos ante errores 503 (Servicio Congestionado)
+    intentos = 3
+    for intento in range(intentos):
+        try:
+            response = ai_client.models.generate_content(
+                model='gemini-3.8-flash',
+                contents=prompt
+            )
 
-        return {
-            "total_registros": len(datos_personas),
-            "analisis": response.text,
-            "datos_analizados": datos_personas
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generando el análisis: {str(e)}")
+            return {
+                "total_registros": len(datos_personas),
+                "analisis": response.text,
+                "datos_analizados": datos_personas
+            }
+
+        except Exception as e:
+            # Si el servidor responde 503 por alta demanda y aún nos quedan intentos, esperamos y reintentamos
+            if "503" in str(e) and intento < intentos - 1:
+                time.sleep(2 ** intento)  # Espera 1s la primera vez, 2s la segunda
+                continue
+            
+            # Si no es un error 503 o se agotaron los 3 intentos, elevamos la excepción
+            raise HTTPException(
+                status_code=503, 
+                detail="El servicio de IA está congestionado. Por favor reintenta en unos segundos."
+            )
