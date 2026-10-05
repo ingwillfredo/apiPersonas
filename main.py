@@ -208,7 +208,7 @@ def get_personas_analisis(db: Session = Depends(get_db)):
     try:
         # 3. Solicitar la generación del contenido al modelo
         response = ai_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3.8-flash',
             contents=prompt
         )
 
