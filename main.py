@@ -178,31 +178,30 @@ def get_personas(db: Session = Depends(get_db)):
 # Nuevo Endpoint: Análisis de datos con IA (Con Reintentos)
 # -------------------------------------------------------------------
 @app.get("/personas/analisis")
-def get_personas_analisis(db: Session = Depends(get_db)):
-    """Obtiene los datos de la BD y los envía al modelo de IA para generar un informe."""
+def get_personas_analisis(tipo: str = "general", db: Session = Depends(get_db)):
+    """
+    Param 'tipo': 'ciudad', 'genero', 'tipo_documento' o 'general'
+    """
     if not ai_client:
-        raise HTTPException(
-            status_code=500, 
-            detail="GEMINI_API_KEY no está configurada en las variables de entorno."
-        )
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY no configurada.")
 
-    # 1. Recuperar los datos formateados
     datos_personas = get_personas(db)
 
-    if not datos_personas:
-        return {"mensaje": "No hay registros de personas para analizar."}
+    # Personalizamos la instrucción según la elección del usuario en el Frontend
+    prompts = {
+        "ciudad": "Enfócate en la distribución por ciudades y densidad geográfica.",
+        "genero": "Enfócate en el porcentaje y distribución por género.",
+        "tipo_documento": "Enfócate en los tipos de documento y mayoría de edad.",
+        "general": "Entrega un resumen completo con todas las métricas."
+    }
 
-    # 2. Construir el prompt estructurado
+    instruccion_especifica = prompts.get(tipo, prompts["general"])
+
     prompt = f"""
-    Eres un analista de datos. Analiza el siguiente listado de personas proveniente de la base de datos 
-    y genera un informe descriptivo y conciso en formato Markdown:
+    Eres un analista de datos. Analiza el siguiente listado de personas y genera un reporte breve en Markdown.
+    Instrucción específica: {instruccion_especifica}
 
-    - Muestra un resumen general de la cantidad total de personas.
-    - Distribución por ciudad y género.
-    - Tipos de documentos representados.
-    - Cualquier hallazgo relevante sobre los datos.
-
-    Datos de entrada (JSON):
+    Datos JSON:
     {datos_personas}
     """
 
