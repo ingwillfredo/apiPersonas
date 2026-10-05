@@ -1,6 +1,7 @@
 import time
 import os
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship, joinedload
 from google import genai
@@ -86,6 +87,17 @@ def get_db():
 
 
 app = FastAPI(title="API de Personas con PostgreSQL e IA")
+
+# -------------------------------------------------------------------
+# Habilitar CORS para permitir peticiones desde Angular (localhost y producción)
+# -------------------------------------------------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permite peticiones de cualquier origen
+    allow_credentials=True,
+    allow_methods=["*"],  # Permite todos los métodos HTTP (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],  # Permite todos los encabezados
+)
 
 
 @app.on_event("startup")
@@ -205,12 +217,12 @@ def get_personas_analisis(tipo: str = "general", db: Session = Depends(get_db)):
     {datos_personas}
     """
 
-    # 3. Lógica de Reintentos Automáticos ante errores 503 (Servicio Congestionado)
+    # Lógica de Reintentos Automáticos ante errores 503 (Servicio Congestionado)
     intentos = 3
     for intento in range(intentos):
         try:
             response = ai_client.models.generate_content(
-                model='gemini-3.8-flash',
+                model='gemini-2.5-flash',
                 contents=prompt
             )
 
