@@ -1,12 +1,24 @@
+import os
 from fastapi import FastAPI, Depends
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 
 # -------------------------------------------------------------------
-# Configuración de Base de Datos (PostgreSQL)
-# Cambia 'TU_CONTRASEÑA' por la clave que le asignaste al usuario postgres
+# Configuración de Base de Datos para Producción (Render)
 # -------------------------------------------------------------------
-DATABASE_URL = "postgresql+pg8000://postgres:0811@localhost:5432/bdpersonas"
+# Obtiene la URL definida en Render o usa la local por defecto
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    "postgresql+pg8000://postgres:0811@localhost:5432/bdpersonas"
+)
+
+# Render entrega cadenas con 'postgres://', SQLAlchemy requiere 'postgresql://'
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Si estás usando pg8000 en Render y la URL viene como 'postgresql://', le agregamos el driver
+if DATABASE_URL and DATABASE_URL.startswith("postgresql://") and "+pg8000" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -14,7 +26,7 @@ Base = declarative_base()
 
 
 # -------------------------------------------------------------------
-# Modelos de la Base de Datos (4 Tablas)
+# Modelos de la Base de Datos
 # -------------------------------------------------------------------
 class TipoDocumento(Base):
     __tablename__ = "tipos_documento"
@@ -53,7 +65,7 @@ class Persona(Base):
     genero = relationship("Genero")
 
 
-# Crear tablas en PostgreSQL al iniciar
+# Crear tablas automáticamente al iniciar
 Base.metadata.create_all(bind=engine)
 
 
