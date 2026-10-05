@@ -1,0 +1,13 @@
+Notas apipersonas
+
+
+url api
+https://apipersonas-oj0e.onrender.com/docs
+
+
+
+insert into personas (nombre, numero_documento, tipo_documento_id, ciudad_id, genero_id) values
+('Juan Perez', '12345678', 1, 3, 1),
+('Maria Gomez', '87654321', 2, 1, 2),
+('Carlos Sanchez', '11223344', 3, 3, 1),
+('Ana Martinez', '44332211', 2, 3, 2);
